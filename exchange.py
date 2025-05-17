@@ -1,14 +1,17 @@
 import json
 import random
 
+DATA_FILE = "data.json"
+
 def update_exchange_rates():
-    with open("data.json", "r") as f:
+    with open(DATA_FILE, "r") as f:
         data = json.load(f)
 
-    rates = data["exchange_rates"]
-    for key in rates:
-        change_percent = random.randint(-25, 100)  # %25 düşüp %100 artar
-        rates[key] = max(1, int(rates[key] * (1 + change_percent / 100)))
+    for currency in data["exchange_rates"]:
+        rate = data["exchange_rates"][currency]
+        change = rate * random.uniform(-0.25, 1.0)
+        new_rate = max(1, int(rate + change))
+        data["exchange_rates"][currency] = new_rate
 
-    with open("data.json", "w") as f:
+    with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)

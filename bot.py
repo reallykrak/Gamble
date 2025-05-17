@@ -7,7 +7,7 @@ import random
 import threading
 from exchange import update_exchange_rates
 
-BOT_TOKEN = "7920964944:AAEYsvhbs5n2HaXI6QGNhBMMHKjDR-15iLo"
+BOT_TOKEN = "7150888063:AAGZizuDzTxE4RFlBsFJLWTLkwDo061FKyU"
 KENDI_ID = 8121637254  # Admin ID'n
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")

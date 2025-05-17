@@ -1,19 +1,34 @@
 import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot import types
 import json
+import os
 import time
 import random
+import threading
 from exchange import update_exchange_rates
+KENDI_ID = 8121637254 
 
-TOKEN = '7920964944:AAEYsvhbs5n2HaXI6QGNhBMMHKjDR-15iLo'
-bot = telebot.TeleBot(TOKEN)
-
+bot = telebot.TeleBot("7920964944:AAEYsvhbs5n2HaXI6QGNhBMMHKjDR-15iLo", parse_mode="HTML")
 DATA_FILE = "data.json"
+KANALLAR = [
+    "https://t.me/+o8QkbLlqKGk1NDlk",
+    "https://t.me/+X5UmnY0xK_wzN2Nk"
+]
 
-MEYVELER = ['🍒', '🍋', '🍇', '🍊', '7️⃣', '💎']
-TAKIMLAR = ["Real Madrid", "Galatasaray", "Barcelona", "Fenerbahçe", "Liverpool", "Chelsea", "Bayern", "Milan", "Juventus", "PSG", "Arsenal", "Napoli", "Beşiktaş", "Trabzonspor", "Inter"]
-
+# === Veri İşlemleri ===
 def load_data():
+    if not os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "w") as f:
+            json.dump({
+                "users": {},
+                "admins": [],
+                "exchange_rates": {
+                    "dolar": 100,
+                    "euro": 100,
+                    "sterlin": 100,
+                    "elmas": 100
+                }
+            }, f)
     with open(DATA_FILE, "r") as f:
         return json.load(f)
 
@@ -21,147 +36,279 @@ def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
-def get_user(message):
+def register_user(user_id):
     data = load_data()
-    uid = str(message.from_user.id)
-    if uid not in data["users"]:
-        data["users"][uid] = {
-            "money": 0,
-            "bank": 0,
-            "bonus_time": 0,
-            "doviz": {"dolar": 0, "euro": 0, "elmas": 0}
+    if str(user_id) not in data["users"]:
+        data["users"][str(user_id)] = {
+            "bakiye": 100000,
+            "banka": 0,
+            "doviz": {
+                "dolar": 0,
+                "euro": 0,
+                "sterlin": 0,
+                "elmas": 0
+            },
+            "bonus_time": 0
         }
         save_data(data)
-    return uid, data
+
+def check_subscription(user_id):
+    return False  # İstersen gerçek API ile kontrol eklenebilir
+
+def get_balance_text(user):
+    return f"""
+💸 <b>Bakiye:</b> {user["bakiye"]}₺
+🏦 <b>Banka:</b> {user["banka"]}₺
+💱 <b>Döviz:</b>
+  💵 Dolar: {user['doviz']['dolar']}$
+  💶 Euro: {user['doviz']['euro']}€
+  💷 Sterlin: {user['doviz']['sterlin']}£
+  💎 Elmas: {user['doviz']['elmas']}💎
+"""
+
+# === Zamanlayıcı ===
+def update_loop():
+    while True:
+        update_exchange_rates()
+        time.sleep(120)
+
+threading.Thread(target=update_loop, daemon=True).start()
+
+# === Komutlar ===
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    uid, data = get_user(message)
-    bot.reply_to(message, f"Hoş geldin {message.from_user.first_name}!\nKomutları kullanmaya başlayabilirsin.")
+    if message.chat.type != "private":
+        return
+    if not check_subscription(message.from_user.id):
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🟢 KATILDIM", callback_data="katildim"))
+        text = "⛔ Bu Botu Kullanabilmek İçin Aşağıdaki Kanallara Katılmanız Gerekiyor\n\n"
+        for kanal in KANALLAR:
+            text += f"➤ {kanal}\n"
+        text += "\n✅ Katıldıktan Sonra '🟢 Katıldım' Butonuna Tıklayın"
+        bot.send_message(message.chat.id, text, reply_markup=markup)
+        return
+    register_user(message.from_user.id)
+    bot.send_message(message.chat.id, "✅ Hoş geldin! /bakiye ile başlayabilirsin.")
+
+@bot.callback_query_handler(func=lambda call: call.data == "katildim")
+def katildim(call):
+    if check_subscription(call.from_user.id):
+        start(call.message)
+    else:
+        bot.answer_callback_query(call.id, "❌ Kanallara katılmadınız.", show_alert=True)
 
 @bot.message_handler(commands=['bakiye'])
 def bakiye(message):
-    uid, data = get_user(message)
-    user = data["users"][uid]
-    doviz = user["doviz"]
-    bot.reply_to(message,
-        f"💰 Ana Bakiye: {user['money']} TL\n"
-        f"🏦 Banka: {user['bank']} TL\n"
-        f"💵 Dolar: {doviz['dolar']} 💵\n"
-        f"💶 Euro: {doviz['euro']} 💶\n"
-        f"💎 Elmas: {doviz['elmas']} 💎"
-    )
+    register_user(message.from_user.id)
+    data = load_data()
+    user = data["users"][str(message.from_user.id)]
+    bot.send_message(message.chat.id, get_balance_text(user))
 
 @bot.message_handler(commands=['bonus'])
 def bonus(message):
-    uid, data = get_user(message)
-    now = int(time.time())
-    if now - data["users"][uid]["bonus_time"] < 86400:
-        bot.reply_to(message, "⏳ Bonusunuzu 24 saatte bir alabilirsiniz.")
-    else:
-        data["users"][uid]["money"] += 50000
-        data["users"][uid]["bonus_time"] = now
+    register_user(message.from_user.id)
+    data = load_data()
+    user = data["users"][str(message.from_user.id)]
+    now = time.time()
+    if now - user["bonus_time"] >= 86400:
+        user["bakiye"] += 50000
+        user["bonus_time"] = now
         save_data(data)
-        bot.reply_to(message, "✅ 50.000 TL bonus verildi!")
+        bot.send_message(message.chat.id, "🎁 50.000₺ bonus aldınız!")
+    else:
+        kalan = int((86400 - (now - user["bonus_time"])) / 3600)
+        bot.send_message(message.chat.id, f"⏳ Bonus için {kalan} saat beklemelisin.")
 
 @bot.message_handler(commands=['bankaparaekle'])
-def banka_ekle(message):
-    try:
-        uid, data = get_user(message)
-        miktar = int(message.text.split()[1])
-        if data["users"][uid]["money"] >= miktar:
-            data["users"][uid]["money"] -= miktar
-            data["users"][uid]["bank"] += miktar
-            save_data(data)
-            bot.reply_to(message, f"✅ {miktar} TL bankaya yatırıldı.")
-        else:
-            bot.reply_to(message, "❌ Yetersiz bakiye.")
-    except:
-        bot.reply_to(message, "Kullanım: /bankaparaekle 1000")
+def bankaparaekle(message):
+    register_user(message.from_user.id)
+    args = message.text.split()
+    if len(args) < 2: return
+    miktar = int(args[1])
+    data = load_data()
+    user = data["users"][str(message.from_user.id)]
+    if user["bakiye"] >= miktar:
+        user["bakiye"] -= miktar
+        user["banka"] += miktar
+        save_data(data)
+        bot.send_message(message.chat.id, f"🏦 {miktar}₺ bankaya eklendi!")
+    else:
+        bot.send_message(message.chat.id, "❌ Yetersiz bakiye.")
 
 @bot.message_handler(commands=['bankaparaçek'])
-def banka_cek(message):
-    try:
-        uid, data = get_user(message)
-        miktar = int(message.text.split()[1])
-        if data["users"][uid]["bank"] >= miktar:
-            data["users"][uid]["money"] += miktar
-            data["users"][uid]["bank"] -= miktar
-            save_data(data)
-            bot.reply_to(message, f"💸 {miktar} TL bankadan çekildi.")
-        else:
-            bot.reply_to(message, "❌ Bankada yeterli para yok.")
-    except:
-        bot.reply_to(message, "Kullanım: /bankaparaçek 1000")
+def bankaparaçek(message):
+    register_user(message.from_user.id)
+    args = message.text.split()
+    if len(args) < 2: return
+    miktar = int(args[1])
+    data = load_data()
+    user = data["users"][str(message.from_user.id)]
+    if user["banka"] >= miktar:
+        user["banka"] -= miktar
+        user["bakiye"] += miktar
+        save_data(data)
+        bot.send_message(message.chat.id, f"💸 {miktar}₺ banka'dan çekildi!")
+    else:
+        bot.send_message(message.chat.id, "❌ Banka bakiyesi yetersiz.")
+
+@bot.message_handler(commands=['dövizal'])
+def dovizal(message):
+    args = message.text.split()
+    if len(args) != 3: return
+    register_user(message.from_user.id)
+    tur, miktar = args[1].lower(), int(args[2])
+    data = load_data()
+    user = data["users"][str(message.from_user.id)]
+    fiyat = data["exchange_rates"].get(tur)
+    if not fiyat:
+        bot.send_message(message.chat.id, "❌ Geçersiz döviz türü.")
+        return
+    toplam = fiyat * miktar
+    if user["banka"] >= toplam:
+        user["banka"] -= toplam
+        user["doviz"][tur] += miktar
+        save_data(data)
+        bot.send_message(message.chat.id, f"✅ {miktar} {tur.upper()} alındı!")
+    else:
+        bot.send_message(message.chat.id, "❌ Banka bakiyesi yetersiz.")
+
+@bot.message_handler(commands=['dövizsat'])
+def dovizsat(message):
+    args = message.text.split()
+    if len(args) != 3: return
+    register_user(message.from_user.id)
+    tur, miktar = args[1].lower(), int(args[2])
+    data = load_data()
+    user = data["users"][str(message.from_user.id)]
+    fiyat = data["exchange_rates"].get(tur)
+    if not fiyat:
+        bot.send_message(message.chat.id, "❌ Geçersiz döviz türü.")
+        return
+    if user["doviz"][tur] >= miktar:
+        user["doviz"][tur] -= miktar
+        user["banka"] += fiyat * miktar
+        save_data(data)
+        bot.send_message(message.chat.id, f"💱 {miktar} {tur.upper()} satıldı!")
+    else:
+        bot.send_message(message.chat.id, "❌ Elinizde yeterli döviz yok.")
+
+@bot.message_handler(commands=['risk'])
+def risk(message):
+    args = message.text.split()
+    if len(args) < 2: return
+    miktar = int(args[1])
+    data = load_data()
+    user = data["users"][str(message.from_user.id)]
+    if user["bakiye"] < miktar:
+        bot.send_message(message.chat.id, "❌ Yetersiz bakiye.")
+        return
+    if random.randint(1, 100) <= 50:
+        user["bakiye"] += miktar
+        sonuc = "✅ Kazandın!"
+    else:
+        user["bakiye"] -= miktar
+        sonuc = "☠️ Kaybettin!"
+    save_data(data)
+    bot.send_message(message.chat.id, f"{sonuc} Yeni bakiye: {user['bakiye']}₺")
 
 @bot.message_handler(commands=['slot'])
 def slot(message):
-    uid, data = get_user(message)
-    u = data["users"][uid]
-    bahis = 10000
-    if u["money"] < bahis:
-        bot.reply_to(message, "❌ Slot oynamak için yeterli paran yok.")
-        return
-    u["money"] -= bahis
-    secim = [random.choice(MEYVELER) for _ in range(3)]
-    msg = '🎰 ' + ' | '.join(secim) + ' 🎰\n'
-    if secim[0] == secim[1] == secim[2]:
-        kazanc = bahis * 5
-        u["money"] += kazanc
-        msg += f"🎉 Tebrikler! {kazanc} TL kazandın!"
-    else:
-        msg += f"☠️ Kaybettin! {bahis} TL gitti."
-    save_data(data)
-    bot.reply_to(message, msg)
-
-@bot.message_handler(commands=['bahis'])
-def bahis(message):
-    try:
-        uid, data = get_user(message)
-        miktar = int(message.text.split()[1])
-        if data["users"][uid]["money"] < miktar:
-            return bot.reply_to(message, "❌ Yetersiz bakiye.")
-        markup = InlineKeyboardMarkup()
-        for t in TAKIMLAR[:4]:
-            markup.add(InlineKeyboardButton(t, callback_data=f"bahis|{uid}|{miktar}|{t}"))
-        bot.reply_to(message, "Hangi takıma bahis oynamak istersin?", reply_markup=markup)
-    except:
-        bot.reply_to(message, "Kullanım: /bahis 50000")
-
-@bot.callback_query_handler(func=lambda call: call.data.startswith("bahis"))
-def bahis_sec(call):
-    _, uid, miktar, secim = call.data.split("|")
+    args = message.text.split()
+    if len(args) < 2: return
+    miktar = int(args[1])
+    emojis = ["🍒", "🍋", "🍉", "7️⃣", "⭐", "🍇"]
     data = load_data()
-    uid = str(call.from_user.id)
-    if uid != call.from_user.id.__str__():
-        return bot.answer_callback_query(call.id, "Bu bahis sana ait değil.")
-    data["users"][uid]["money"] -= int(miktar)
-    kazanan = random.choice(TAKIMLAR[:4])
-    if secim == kazanan:
-        kazanc = int(miktar) * 7
-        data["users"][uid]["money"] += kazanc
-        msg = f"🏆 Kazanan: {kazanan}\n🎉 Tebrikler! {kazanc} TL kazandın!"
+    user = data["users"][str(message.from_user.id)]
+    if user["bakiye"] < miktar:
+        bot.send_message(message.chat.id, "❌ Yetersiz bakiye.")
+        return
+    r = [random.choice(emojis) for _ in range(3)]
+    if len(set(r)) == 1:
+        kazanc = miktar * 7
+        user["bakiye"] += kazanc
+        sonuc = "🎉 JACKPOT!"
     else:
-        msg = f"☠️ Kaybettin! Kazanan takım: {kazanan}"
+        user["bakiye"] -= miktar
+        sonuc = "☠️ Kaybettin!"
     save_data(data)
-    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=msg)
+    bot.send_message(message.chat.id, f"{''.join(r)}\n{sonuc} Yeni bakiye: {user['bakiye']}₺")
 
 @bot.message_handler(commands=['top'])
 def top(message):
     data = load_data()
-    sirali = sorted(data["users"].items(), key=lambda x: x[1]["money"] + x[1]["bank"], reverse=True)[:5]
-    msg = "🏆 En Zenginler:\n"
-    for i, (uid, u) in enumerate(sirali, 1):
-        toplam = u["money"] + u["bank"]
-        msg += f"{i}. {uid}: {toplam} TL\n"
-    bot.reply_to(message, msg)
+    sirala = sorted(data["users"].items(), key=lambda x: x[1]["bakiye"] + x[1]["banka"], reverse=True)
+    text = "🏆 En Zenginler:\n"
+    for i, (uid, info) in enumerate(sirala[:10], 1):
+        text += f"{i}. <code>{uid}</code> - {info['bakiye'] + info['banka']}₺\n"
+    bot.send_message(message.chat.id, text)
 
-# Döviz fiyatı güncelleyici (ayrı çalışan process olabilir)
-import threading
-def doviz_guncelle():
-    while True:
-        update_exchange_rates()
-        time.sleep(120)
-threading.Thread(target=doviz_guncelle, daemon=True).start()
+@bot.message_handler(commands=['paragönder'])
+def paragonder(message):
+    args = message.text.split()
+    if len(args) < 3: return
+    hedef, miktar = args[1], int(args[2])
+    data = load_data()
+    if hedef not in data["users"]: return
+    gonderen = data["users"][str(message.from_user.id)]
+    if gonderen["bakiye"] < miktar: return
+    gonderen["bakiye"] -= miktar
+    data["users"][hedef]["bakiye"] += miktar
+    save_data(data)
+    bot.send_message(message.chat.id, f"✅ {hedef} kişisine {miktar}₺ gönderildi!")
 
-bot.polling()
+@bot.message_handler(commands=['id'])
+def idkomut(message):
+    if message.reply_to_message:
+        bot.send_message(message.chat.id, f"🆔 Kullanıcı ID: <code>{message.reply_to_message.from_user.id}</code>")
+    else:
+        bot.send_message(message.chat.id, "❌ Birine cevap vererek kullan.")
+
+@bot.message_handler(commands=['admin'])
+def admin(message):
+    if message.from_user.id != KENDI_ID: return
+    args = message.text.split()
+    if len(args) < 2: return
+    data = load_data()
+    data["admins"].append(args[1])
+    save_data(data)
+    bot.send_message(message.chat.id, "👑 Admin eklendi!")
+
+@bot.message_handler(commands=['parabasma'])
+def parabasma(message):
+    data = load_data()
+    if str(message.from_user.id) not in data["admins"]: return
+    args = message.text.split()
+    if len(args) < 3: return
+    hedef, miktar = args[1], int(args[2])
+    data["users"][hedef]["bakiye"] += miktar
+    save_data(data)
+    bot.send_message(message.chat.id, f"🤑 {hedef} kişisine {miktar}₺ basıldı!")
+
+@bot.message_handler(commands=['komutlar'])
+def komutlar(message):
+    bot.send_message(message.chat.id, """
+📜 <b>Komutlar Listesi</b>
+
+/start • Botu başlat
+/bakiye • Bakiye ve dövizleri göster
+/bonus • 24 saatte 1 bonus
+/banka • Banka bilgileri
+/bankaparaekle x • Bankaya para yatır
+/bankaparaçek x • Bankadan para çek
+/dövizal tür miktar • Döviz al (dolar, euro, sterlin, elmas)
+/dövizsat tür miktar • Döviz sat
+/kazı • Kazı kazan
+/slot x • Slot oynar
+/risk x • %50 X2 kazan
+/bahis x • Takıma bahis
+/top • En zenginler
+/id • Kullanıcı ID'si
+/paragönder id x • Para gönder
+/parabasma id x • Admin para basar
+/admin id • Admin ekler
+""")
+
+print("BOT BAŞLADI.")
+bot.infinity_polling()

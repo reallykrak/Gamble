@@ -5,8 +5,13 @@ from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
 
+# === TOKEN ve SABİT ADMIN ===
+TOKEN = "7150888063:AAGZizuDzTxE4RFlBsFJLWTLkwDo061FKyU"  # <-- Buraya bot tokenını yaz
+SABIT_ADMIN_ID = 8121637254         # <-- Buraya kendi Telegram ID'ni yaz
+
 DATA_FILE = "data.json"
 
+# === VERİ FONKSİYONLARI ===
 def load_data():
     with open(DATA_FILE, "r") as f:
         return json.load(f)
@@ -34,8 +39,7 @@ def set_user(user_id, user_data):
 
 def is_admin(user_id):
     data = load_data()
-    return str(user_id) in data["admins"]
-
+    return str(user_id) == str(SABIT_ADMIN_ID) or str(user_id) in data["admins"]
 def start(update: Update, context: CallbackContext):
     user = update.effective_user
     get_user(user.id)

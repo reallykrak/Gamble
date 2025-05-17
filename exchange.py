@@ -1,5 +1,5 @@
-import random
 import json
+import random
 
 DATA_FILE = "data.json"
 
@@ -13,12 +13,9 @@ def save_data(data):
 
 def update_exchange_rates():
     data = load_data()
-    rates = data.get("exchange_rates", {})
-
-    for key in rates:
-        change = random.randint(-45, 100)
-        rates[key] = max(1, rates[key] + change)
-
-    data["exchange_rates"] = rates
+    for currency in data["exchange_rates"]:
+        rate = data["exchange_rates"][currency]
+        degisim = rate * random.uniform(-1.0, 0.25)  # %100 düşüş ile %25 artış arası
+        yeni_fiyat = max(1, int(rate + degisim))
+        data["exchange_rates"][currency] = yeni_fiyat
     save_data(data)
-    return rates

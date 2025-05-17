@@ -5,7 +5,7 @@ import threading
 import time
 from exchange import update_exchange_rates
 
-TOKEN = "7763395301:AAF3thVNH883Rzmz0RTpsx3wuiCG_VLpa-g"
+TOKEN = "7763395301:AAGPcdU8SAwZBVqXWGqw7_oCuro1XjASqkA"
 bot = telebot.TeleBot(TOKEN)
 
 DATA_FILE = "data.json"

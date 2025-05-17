@@ -1,0 +1,10 @@
+{
+  "users": {},
+  "admins": [],
+  "exchange_rates": {
+    "dolar": 100,
+    "euro": 100,
+    "altin": 100,
+    "sterlin": 100
+  }
+}

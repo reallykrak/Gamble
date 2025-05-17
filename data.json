@@ -1,10 +1,20 @@
 {
-  "users": {},
-  "admins": [],
+  "users": {
+    "123456789": {
+      "money": 50000,
+      "bank": 20000,
+      "bonus_time": 0,
+      "doviz": {
+        "dolar": 5,
+        "euro": 2,
+        "elmas": 1
+      }
+    }
+  },
   "exchange_rates": {
     "dolar": 100,
-    "euro": 100,
-    "altin": 100,
-    "sterlin": 100
-  }
+    "euro": 110,
+    "elmas": 200
+  },
+  "admins": ["8121637254"]
 }

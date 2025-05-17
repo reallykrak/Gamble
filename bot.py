@@ -1,32 +1,13 @@
-import telebot
-from telebot import types
 import json
-import os
-import time
 import random
-import threading
-from exchange import update_exchange_rates
+import time
+from datetime import datetime
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackContext, CallbackQueryHandler, MessageHandler, Filters
 
-BOT_TOKEN = "7150888063:AAGZizuDzTxE4RFlBsFJLWTLkwDo061FKyU"
-KENDI_ID = 8121637254  # Admin ID'n
-
-bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 DATA_FILE = "data.json"
 
-# === Veri Fonksiyonları ===
 def load_data():
-    if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "w") as f:
-            json.dump({
-                "users": {},
-                "admins": [],
-                "exchange_rates": {
-                    "dolar": 100,
-                    "euro": 100,
-                    "sterlin": 100,
-                    "elmas": 100
-                }
-            }, f)
     with open(DATA_FILE, "r") as f:
         return json.load(f)
 
@@ -34,228 +15,303 @@ def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
-def register_user(user_id):
+def get_user(user_id):
     data = load_data()
     if str(user_id) not in data["users"]:
         data["users"][str(user_id)] = {
-            "bakiye": 100000,
+            "bakiye": 1000,
             "banka": 0,
-            "doviz": {"dolar": 0, "euro": 0, "sterlin": 0, "elmas": 0},
+            "doviz": {},
             "bonus_time": 0
         }
         save_data(data)
+    return data["users"][str(user_id)]
 
-# === Döviz Güncelleme ===
-def update_loop():
-    while True:
-        update_exchange_rates()
-        time.sleep(120)
-
-threading.Thread(target=update_loop, daemon=True).start()
-
-# === Komutlar ===
-
-@bot.message_handler(commands=['start'])
-def start(message):
-    register_user(message.from_user.id)
-    bot.send_message(message.chat.id, "✅ Hoş geldin! /komutlar komutunu kullanabilirsin.")
-
-@bot.message_handler(commands=['bakiye'])
-def bakiye(message):
-    register_user(message.from_user.id)
+def set_user(user_id, user_data):
     data = load_data()
-    user = data["users"][str(message.from_user.id)]
-    rates = data["exchange_rates"]
-    text = f"""💸 <b>Bakiye:</b> {user["bakiye"]}₺
-🏦 <b>Banka:</b> {user["banka"]}₺
-💱 <b>Döviz:</b>
-  💵 Dolar: {user['doviz']['dolar']} (${rates['dolar']}₺)
-  💶 Euro: {user['doviz']['euro']} (€{rates['euro']}₺)
-  💷 Sterlin: {user['doviz']['sterlin']} (£{rates['sterlin']}₺)
-  💎 Elmas: {user['doviz']['elmas']} ({rates['elmas']}₺)
-"""
-    bot.send_message(message.chat.id, text)
+    data["users"][str(user_id)] = user_data
+    save_data(data)
 
-@bot.message_handler(commands=['bonus'])
-def bonus(message):
-    register_user(message.from_user.id)
+def is_admin(user_id):
     data = load_data()
-    user = data["users"][str(message.from_user.id)]
+    return str(user_id) in data["admins"]
+
+def start(update: Update, context: CallbackContext):
+    user = update.effective_user
+    get_user(user.id)
+    update.message.reply_text(f"👋 Merhaba {user.first_name}! Kumar botuna hoş geldin!\n💸 Başlangıç bakiyen: 1000₺")
+
+def bakiye(update: Update, context: CallbackContext):
+    user = update.effective_user
+    u = get_user(user.id)
+    bakiye = u["bakiye"]
+    banka = u["banka"]
+    doviz = u.get("doviz", {})
+    doviz_text = "\n".join([f"💱 {k.upper()}: {v}" for k, v in doviz.items()]) if doviz else "💱 Dövizin yok."
+    update.message.reply_text(f"💰 Bakiye: {bakiye}₺\n🏦 Banka: {banka}₺\n{doviz_text}")
+
+def bonus(update: Update, context: CallbackContext):
+    user = update.effective_user
+    u = get_user(user.id)
     now = time.time()
-    if now - user["bonus_time"] >= 86400:
-        user["bonus_time"] = now
-        user["bakiye"] += 50000
-        bot.send_message(message.chat.id, "🎁 50.000₺ bonus aldın!")
+    if now - u["bonus_time"] >= 86400:
+        bonus = random.randint(500, 1000)
+        u["bakiye"] += bonus
+        u["bonus_time"] = now
+        set_user(user.id, u)
+        update.message.reply_text(f"🎁 Günlük bonus: {bonus}₺! Keyfini çıkar!")
     else:
-        kalan = int((86400 - (now - user["bonus_time"])) / 3600)
-        bot.send_message(message.chat.id, f"⏳ Bonus için {kalan} saat bekle.")
-    save_data(data)
+        kalan = int(86400 - (now - u["bonus_time"]))
+        update.message.reply_text(f"⏳ Bonus için bekle: {kalan // 3600} saat {kalan % 3600 // 60} dk")
 
-@bot.message_handler(commands=['bankaparaekle'])
-def banka_ekle(message):
-    args = message.text.split()
-    if len(args) < 2: return
-    miktar = int(args[1])
-    data = load_data()
-    user = data["users"][str(message.from_user.id)]
-    if user["bakiye"] >= miktar:
-        user["bakiye"] -= miktar
-        user["banka"] += miktar
-        bot.send_message(message.chat.id, f"🏦 {miktar}₺ bankaya yatırıldı.")
-    else:
-        bot.send_message(message.chat.id, "❌ Yetersiz bakiye.")
-    save_data(data)
+def bankaparaekle(update: Update, context: CallbackContext):
+    user = update.effective_user
+    try:
+        miktar = int(context.args[0])
+        u = get_user(user.id)
+        if u["bakiye"] >= miktar:
+            u["bakiye"] -= miktar
+            u["banka"] += miktar
+            set_user(user.id, u)
+            update.message.reply_text(f"🏦 {miktar}₺ bankaya yatırıldı!")
+        else:
+            update.message.reply_text("❌ Yetersiz bakiye!")
+    except:
+        update.message.reply_text("🔢 Kullanım: /bankaparaekle miktar")
 
-@bot.message_handler(commands=['bankaparaçek'])
-def banka_cek(message):
-    args = message.text.split()
-    if len(args) < 2: return
-    miktar = int(args[1])
-    data = load_data()
-    user = data["users"][str(message.from_user.id)]
-    if user["banka"] >= miktar:
-        user["banka"] -= miktar
-        user["bakiye"] += miktar
-        bot.send_message(message.chat.id, f"💵 {miktar}₺ bankadan çekildi.")
-    else:
-        bot.send_message(message.chat.id, "❌ Banka bakiyesi yetersiz.")
-    save_data(data)
+def bankaparaçek(update: Update, context: CallbackContext):
+    user = update.effective_user
+    try:
+        miktar = int(context.args[0])
+        u = get_user(user.id)
+        if u["banka"] >= miktar:
+            u["banka"] -= miktar
+            u["bakiye"] += miktar
+            set_user(user.id, u)
+            update.message.reply_text(f"💳 {miktar}₺ bankadan çekildi!")
+        else:
+            update.message.reply_text("❌ Bankada bu kadar yok!")
+    except:
+        update.message.reply_text("🔢 Kullanım: /bankaparaçek miktar")
 
-@bot.message_handler(commands=['dövizal'])
-def dovizal(message):
-    args = message.text.split()
-    if len(args) != 3: return
-    tur, miktar = args[1].lower(), int(args[2])
-    data = load_data()
-    user = data["users"][str(message.from_user.id)]
-    if tur not in data["exchange_rates"]: return
-    fiyat = data["exchange_rates"][tur]
-    toplam = fiyat * miktar
-    if user["banka"] >= toplam:
-        user["banka"] -= toplam
-        user["doviz"][tur] += miktar
-        bot.send_message(message.chat.id, f"💱 {miktar} {tur.upper()} alındı!")
-    else:
-        bot.send_message(message.chat.id, "❌ Yetersiz banka bakiyesi.")
-    save_data(data)
+def dovizal(update: Update, context: CallbackContext):
+    try:
+        tur = context.args[0]
+        miktar = int(context.args[1])
+        data = load_data()
+        fiyat = data["exchange_rates"][tur]
+        u = get_user(update.effective_user.id)
+        toplam = fiyat * miktar
+        if u["bakiye"] >= toplam:
+            u["bakiye"] -= toplam
+            u["doviz"][tur] = u["doviz"].get(tur, 0) + miktar
+            set_user(update.effective_user.id, u)
+            update.message.reply_text(f"💱 {miktar} {tur.upper()} alındı! Toplam: {toplam}₺")
+        else:
+            update.message.reply_text("❌ Bakiye yetersiz!")
+    except:
+        update.message.reply_text("🔢 Kullanım: /dövizal tür miktar")
 
-@bot.message_handler(commands=['dövizsat'])
-def dovizsat(message):
-    args = message.text.split()
-    if len(args) != 3: return
-    tur, miktar = args[1].lower(), int(args[2])
-    data = load_data()
-    user = data["users"][str(message.from_user.id)]
-    if user["doviz"][tur] < miktar:
-        return bot.send_message(message.chat.id, "❌ Elinizde yeterli döviz yok.")
-    fiyat = data["exchange_rates"][tur]
-    gelir = fiyat * miktar
-    user["doviz"][tur] -= miktar
-    user["banka"] += gelir
-    bot.send_message(message.chat.id, f"💱 {miktar} {tur.upper()} satıldı!")
-    save_data(data)
+def dovizsat(update: Update, context: CallbackContext):
+    try:
+        tur = context.args[0]
+        miktar = int(context.args[1])
+        data = load_data()
+        fiyat = data["exchange_rates"][tur]
+        u = get_user(update.effective_user.id)
+        if u["doviz"].get(tur, 0) >= miktar:
+            u["doviz"][tur] -= miktar
+            u["bakiye"] += fiyat * miktar
+            set_user(update.effective_user.id, u)
+            update.message.reply_text(f"💸 {miktar} {tur.upper()} satıldı! Kazanç: {fiyat * miktar}₺")
+        else:
+            update.message.reply_text("❌ Elinde bu kadar yok!")
+    except:
+        update.message.reply_text("🔢 Kullanım: /dövizsat tür miktar")
 
-@bot.message_handler(commands=['slot'])
-def slot(message):
-    args = message.text.split()
-    if len(args) < 2: return
-    miktar = int(args[1])
-    emojis = ["🍒", "🍋", "🍉", "7️⃣", "⭐", "🍇"]
-    data = load_data()
-    user = data["users"][str(message.from_user.id)]
-    if user["bakiye"] < miktar:
-        return bot.send_message(message.chat.id, "❌ Yetersiz bakiye.")
-    kazanma = random.randint(1, 100)
-    slotlar = [random.choice(emojis) for _ in range(3)]
-    if kazanma <= 30:
-        user["bakiye"] += miktar * 5
-        sonuc = "🎉 Kazandın! X5"
-    else:
-        user["bakiye"] -= miktar
-        sonuc = "☠️ Kaybettin!"
-    save_data(data)
-    bot.send_message(message.chat.id, f"{slotlar[0]}|{slotlar[1]}|{slotlar[2]}\n{sonuc}\nYeni bakiye: {user['bakiye']}₺")
+def slot(update: Update, context: CallbackContext):
+    user = update.effective_user
+    try:
+        miktar = int(context.args[0])
+        u = get_user(user.id)
+        if u["bakiye"] < miktar:
+            return update.message.reply_text("💀 Yetersiz bakiye!")
+        u["bakiye"] -= miktar
+        emojis = ["🍒", "🍍", "🍇", "🍉", "💀", "7️⃣"]
+        sonuc = [random.choice(emojis) for _ in range(3)]
+        if sonuc.count(sonuc[0]) == 3:
+            kazanc = miktar * 5
+            u["bakiye"] += kazanc
+            text = f"{' '.join(sonuc)}\n🎉 TEBRİKLER! {kazanc}₺ kazandın!"
+        else:
+            text = f"{' '.join(sonuc)}\n💀 Kaybettin! Tekrar dene!"
+        set_user(user.id, u)
+        update.message.reply_text(text)
+    except:
+        update.message.reply_text("🔢 Kullanım: /slot miktar")
 
-@bot.message_handler(commands=['risk'])
-def risk(message):
-    args = message.text.split()
-    if len(args) < 2: return
-    miktar = int(args[1])
-    data = load_data()
-    user = data["users"][str(message.from_user.id)]
-    if user["bakiye"] < miktar:
-        return bot.send_message(message.chat.id, "❌ Yetersiz bakiye.")
-    if random.randint(1, 100) <= 50:
-        user["bakiye"] += miktar
-        sonuc = "✅ Kazandın!"
-    else:
-        user["bakiye"] -= miktar
-        sonuc = "❌ Kaybettin!"
-    save_data(data)
-    bot.send_message(message.chat.id, f"{sonuc} Yeni bakiye: {user['bakiye']}₺")
+def risk(update: Update, context: CallbackContext):
+    try:
+        miktar = int(context.args[0])
+        u = get_user(update.effective_user.id)
+        if u["bakiye"] < miktar:
+            return update.message.reply_text("💀 Yetersiz bakiye!")
+        u["bakiye"] -= miktar
+        if random.random() < 0.5:
+            u["bakiye"] += miktar * 2
+            text = f"🔥 KAZANDIN! {miktar*2}₺ oldu!"
+        else:
+            text = "💀 Kaybettin! Şansını zorladın!"
+        set_user(update.effective_user.id, u)
+        update.message.reply_text(text)
+    except:
+        update.message.reply_text("🔢 Kullanım: /risk miktar")
 
-@bot.message_handler(commands=['bahis'])
-def bahis(message):
-    args = message.text.split()
-    if len(args) < 2: return
-    miktar = int(args[1])
-    takimlar = ["⚽ Galatasaray", "🔵 Fenerbahçe", "🟢 Trabzonspor"]
-    secilen = random.choice(takimlar)
-    kazanan = random.choice(takimlar)
-    data = load_data()
-    user = data["users"][str(message.from_user.id)]
-    if user["bakiye"] < miktar:
-        return bot.send_message(message.chat.id, "❌ Yetersiz bakiye.")
-    user["bakiye"] -= miktar
+def bahis(update: Update, context: CallbackContext):
+    try:
+        miktar = int(context.args[0])
+        u = get_user(update.effective_user.id)
+        if u["bakiye"] < miktar:
+            return update.message.reply_text("❌ Bakiye yetersiz!")
+        takimlar = ["Real Madrid", "Fenerbahçe", "Beşiktaş", "Galatasaray", "Juventus", "Barcelona", "Manchester City",
+                    "Bayern Munchen", "Manchester United", "Dortmund", "Milan", "Arsenal", "İnter", "Liverpool", "Atletico Madrid"]
+        secilenler = random.sample(takimlar, 3)
+        kazanan = random.choice(secilenler)
+
+        buttons = [
+            [InlineKeyboardButton(f"⚽ {takim}", callback_data=f"bahis|{takim}|{miktar}|{kazanan}")]
+            for takim in secilenler
+        ]
+        markup = InlineKeyboardMarkup(buttons)
+        update.message.reply_text(f"⚽ Takımını seç:\nBahis: {miktar}₺", reply_markup=markup)
+    except:
+        update.message.reply_text("🔢 Kullanım: /bahis miktar")
+
+def bahis_callback(update: Update, context: CallbackContext):
+    query = update.callback_query
+    user_id = query.from_user.id
+    _, secilen, miktar, kazanan = query.data.split("|")
+    miktar = int(miktar)
+    u = get_user(user_id)
+    u["bakiye"] -= miktar
     if secilen == kazanan:
-        kazanc = miktar * 2
-        user["bakiye"] += kazanc
-        sonuc = f"🏆 Kazandın! {kazanc}₺"
+        kazanc = miktar * 4
+        u["bakiye"] += kazanc
+        text = f"🏆 Doğru tahmin: {kazanan}! Kazandın +{kazanc}₺"
     else:
-        sonuc = f"☠️ Kaybettin! Kazanan: {kazanan}"
-    save_data(data)
-    bot.send_message(message.chat.id, f"Bahisin: {secilen}\n{sonuc}\nYeni bakiye: {user['bakiye']}₺")
+        text = f"❌ Kazanan: {kazanan}. Kaybettin!"
+    set_user(user_id, u)
+    query.edit_message_text(text)
 
-@bot.message_handler(commands=['parabasma'])
-def parabasma(message):
+def paragönder(update: Update, context: CallbackContext):
+    try:
+        hedef_id = int(context.args[0])
+        miktar = int(context.args[1])
+        gonderen = get_user(update.effective_user.id)
+        if gonderen["bakiye"] >= miktar:
+            gonderen["bakiye"] -= miktar
+            alici = get_user(hedef_id)
+            alici["bakiye"] += miktar
+            set_user(update.effective_user.id, gonderen)
+            set_user(hedef_id, alici)
+            update.message.reply_text(f"✅ {miktar}₺ gönderildi!")
+        else:
+            update.message.reply_text("❌ Bakiye yetersiz!")
+    except:
+        update.message.reply_text("🔢 Kullanım: /paragönder id miktar")
+
+def parabasma(update: Update, context: CallbackContext):
+    if not is_admin(update.effective_user.id):
+        return update.message.reply_text("🚫 Bu komut sadece adminlere özel!")
+    try:
+        hedef_id = int(context.args[0])
+        miktar = int(context.args[1])
+        u = get_user(hedef_id)
+        u["bakiye"] += miktar
+        set_user(hedef_id, u)
+        update.message.reply_text(f"💸 {miktar}₺ başarıyla basıldı ve {hedef_id} ID'li kullanıcıya eklendi!")
+    except:
+        update.message.reply_text("🔢 Kullanım: /parabasma id miktar")
+
+def admin(update: Update, context: CallbackContext):
+    if not is_admin(update.effective_user.id):
+        return update.message.reply_text("🚫 Bu komut sadece adminlere özel!")
+    try:
+        yeni_admin = str(context.args[0])
+        data = load_data()
+        if yeni_admin not in data["admins"]:
+            data["admins"].append(yeni_admin)
+            save_data(data)
+            update.message.reply_text(f"👑 {yeni_admin} artık admin!")
+        else:
+            update.message.reply_text("⚠️ Zaten admin!")
+    except:
+        update.message.reply_text("🔢 Kullanım: /admin kullanıcı_id")
+
+def id(update: Update, context: CallbackContext):
+    if update.message.reply_to_message:
+        hedef = update.message.reply_to_message.from_user
+        update.message.reply_text(f"🆔 {hedef.first_name}: {hedef.id}")
+    elif context.args:
+        update.message.reply_text("❗ Etiket yerine yanıtla özelliğini kullan!")
+    else:
+        update.message.reply_text(f"🆔 Senin ID: {update.effective_user.id}")
+
+def top(update: Update, context: CallbackContext):
     data = load_data()
-    if str(message.from_user.id) not in data["admins"]: return
-    args = message.text.split()
-    if len(args) < 3: return
-    hedef, miktar = args[1], int(args[2])
-    if hedef in data["users"]:
-        data["users"][hedef]["bakiye"] += miktar
-        bot.send_message(message.chat.id, f"🤑 {hedef} kişisine {miktar}₺ basıldı!")
-        save_data(data)
+    sirali = sorted(data["users"].items(), key=lambda x: x[1]["bakiye"] + x[1]["banka"], reverse=True)[:10]
+    text = "🏆 En Zenginler Listesi:\n\n"
+    for i, (uid, veriler) in enumerate(sirali, 1):
+        toplam = veriler["bakiye"] + veriler["banka"]
+        text += f"{i}. 👤 ID:{uid} - {toplam}₺\n"
+    update.message.reply_text(text)
 
-@bot.message_handler(commands=['id'])
-def idkomut(message):
-    if message.reply_to_message:
-        uid = message.reply_to_message.from_user.id
-        bot.send_message(message.chat.id, f"🆔 Kullanıcı ID: <code>{uid}</code>")
-    else:
-        bot.send_message(message.chat.id, f"🆔 Senin ID: <code>{message.from_user.id}</code>")
+def komutlar(update: Update, context: CallbackContext):
+    text = (
+        "📜 *Komutlar Listesi*\n"
+        "🟢 /start - Botu başlat\n"
+        "💸 /bakiye - Bakiyeni göster\n"
+        "🎁 /bonus - Günlük bonus al\n"
+        "🏦 /bankaparaekle x - Bankaya Para Yatır\n"
+        "🏦 /banka - Dövizleir Takip et\n"
+        "💳 /bankaparaçek x - Bankadan Para Çek\n"
+        "💱 /dövizal tür miktar - Döviz al\n"
+        "💵 /dövizsat tür miktar - Döviz sat\n"
+        "🎰 /slot x - Slot oynar (%30 X5)\n"
+        "☠️ /risk x - %50 kazanma riski\n"
+        "⚽ /bahis x - Takıma bahis yap\n"
+        "🧾 /paragönder id x - Para gönder\n"
+        "🧾 /parabasma id x - Admin para basar\n"
+        "👑 /admin id - Admin ekler\n"
+        "🆔 /id - Kullanıcı ID'sini göster\n"
+        "🏆 /top - En zenginleri göster"
+    )
+    update.message.reply_text(text, parse_mode="Markdown")
 
-@bot.message_handler(commands=['komutlar'])
-def komutlar(message):
-    bot.send_message(message.chat.id, """
-📜 <b>Komutlar Listesi</b>
-🟢 /start - Botu başlat
-💸 /bakiye - Bakiyeni göster
-🎁 /bonus - Günlük bonus al
-🏦 /bankaparaekle x - Bankaya para yatır
-💳 /bankaparaçek x - Bankadan para çek
-💱 /dövizal tür miktar - Döviz al
-💵 /dövizsat tür miktar - Döviz sat
-🎰 /slot x - Slot oynar (%30 X5)
-☠️ /risk x - %50 kazanma riski
-⚽ /bahis x - Takıma bahis yap
-🧾 /paragönder id x - Para gönder
-🧾 /parabasma id x - Admin para basar
-👑 /admin id - Admin ekler
-🆔 /id - Kullanıcı ID'sini göster
-🏆 /top - En zenginleri göster
-""")
+def main():
+    updater = Updater("BOT_TOKEN", use_context=True)
+    dp = updater.dispatcher
 
-print("BOT ÇALIŞIYOR...")
-bot.infinity_polling()
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("bakiye", bakiye))
+    dp.add_handler(CommandHandler("bonus", bonus))
+    dp.add_handler(CommandHandler("bankaparaekle", bankaparaekle))
+    dp.add_handler(CommandHandler("bankaparaçek", bankaparaçek))
+    dp.add_handler(CommandHandler("dövizal", dovizal))
+    dp.add_handler(CommandHandler("dövizsat", dovizsat))
+    dp.add_handler(CommandHandler("slot", slot))
+    dp.add_handler(CommandHandler("risk", risk))
+    dp.add_handler(CommandHandler("bahis", bahis))
+    dp.add_handler(CallbackQueryHandler(bahis_callback, pattern="^bahis\\|"))
+    dp.add_handler(CommandHandler("paragönder", paragönder))
+    dp.add_handler(CommandHandler("parabasma", parabasma))
+    dp.add_handler(CommandHandler("admin", admin))
+    dp.add_handler(CommandHandler("id", id))
+    dp.add_handler(CommandHandler("top", top))
+    dp.add_handler(CommandHandler("komutlar", komutlar))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == "__main__":
+    main()

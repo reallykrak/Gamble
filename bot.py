@@ -7,6 +7,7 @@ from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
 
 TOKEN = "7150888063:AAGZizuDzTxE4RFlBsFJLWTLkwDo061FKyU"  # BotFather'dan alınan token
+SABIT_ADMIN_ID = 8123456789  # ← Buraya kendi Telegram ID’ni yaz!
 DATA_FILE = "data.json"
 router = Router()
 
@@ -177,47 +178,11 @@ async def doviz_sat(message: Message):
             u["doviz"][tur] -= miktar
             u["banka"] += gelir
             set_user(message.from_user.id, u)
-except:
-        await message.answer("🔢 Kullanım: /dövizsat <tür> <miktar>")
-
-@router.message(Command("slot"))
-async def slot_cmd(message: Message):
-    try:
-        miktar = int(message.text.split()[1])
-        u = get_user(message.from_user.id)
-        if u["bakiye"] < miktar:
-            await message.answer("💸 Yetersiz bakiye!")
-            return
-        u["bakiye"] -= miktar
-        semboller = ["🍒", "🍋", "🍇", "🍉", "7️⃣", "💎"]
-        slotlar = [random.choice(semboller) for _ in range(3)]
-        kazanc = 0
-        if slotlar.count(slotlar[0]) == 3:
-            kazanc = miktar * (10 if slotlar[0] == "7️⃣" else 7 if slotlar[0] == "💎" else 5)
-        elif slotlar[0] == slotlar[1] or slotlar[1] == slotlar[2] or slotlar[0] == slotlar[2]:
-            kazanc = miktar * 2
-        u["bakiye"] += kazanc
-        set_user(message.from_user.id, u)
-        sonuc = " | ".join(slotlar)
-        mesaj = f"{sonuc}\n\n"
-        if kazanc > 0:
-            mesaj += f"🎉 Kazandın: {kazanc}₺"
+            await message.answer(f"💱 {miktar} {tur.upper()} satıldı, 💵 {gelir}₺ kazandın!")
         else:
-            mesaj += "💀 Kaybettin!"
-        await message.answer(mesaj)
+            await message.answer("❌ Elinde bu kadar döviz yok.")
     except:
-        await message.answer("🔢 Kullanım: /slot <miktar>")
-
-@router.message(Command("risk"))
-async def risk_cmd(message: Message):
-    try:
-        miktar = int(message.text.split()[1])
-        u = get_user(message.from_user.id)
-        if u["bakiye"] < miktar:
-            await message.answer("💸 Yetersiz bakiye!")
-            return
-        sonuc = random.randint(1, 100)
-        if sonuc <= 45:
+        await message.answer("🔢 Kullanım: /dövizsat <tür> <miktar>")
             u["bakiye"] += miktar
             await message.answer(f"🔥 Şanslısın! {miktar}₺ kazandın!")
         else:

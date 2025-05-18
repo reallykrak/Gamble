@@ -112,10 +112,24 @@ def banka(update: Update, context: CallbackContext):
         f"💎 Elmas: {rates.get('elmas', '?')}₺"
     )
     update.message.reply_text(metin, parse_mode="HTML")
-    def dovizal(update: Update, context: CallbackContext):
+    def banka(update: Update, context: CallbackContext):
+    u = get_user(update.effective_user.id)
+    data = load_data()
+    rates = data.get("exchange_rates", {})
+    metin = (
+        f"🏛️ <b>BANKA & DÖVİZ BİLGİLERİ</b>\n"
+        f"💳 Banka Bakiyesi: {u['banka']}₺\n\n"
+        f"💱 <b>Döviz Kurları:</b>\n"
+        f"💵 Dolar: {rates.get('dolar', '?')}₺\n"
+        f"💶 Euro: {rates.get('euro', '?')}₺\n"
+        f"💷 Sterlin: {rates.get('sterlin', '?')}₺\n"
+        f"💎 Elmas: {rates.get('elmas', '?')}₺"
+    )
+    update.message.reply_text(metin, parse_mode="HTML")
+
+# BU KISIM ARTIK FONKSİYON DIŞINDA
+def dovizal(update: Update, context: CallbackContext):
     try:
-        # kodlar burada girintili şekilde devam etmeli
-        pass
         tur = context.args[0].lower()
         miktar = int(context.args[1])
         data = load_data()

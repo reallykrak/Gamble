@@ -112,6 +112,7 @@ def banka(update: Update, context: CallbackContext):
         f"💎 Elmas: {rates.get('elmas', '?')}₺"
     )
     update.message.reply_text(metin, parse_mode="HTML")
+    
     def dovizal(update: Update, context: CallbackContext):
     try:
         tur = context.args[0].lower()

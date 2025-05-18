@@ -293,8 +293,11 @@ def komutlar(update: Update, context: CallbackContext):
     update.message.reply_text(text, parse_mode="Markdown")
 
 def main():
-    updater = Updater("BOT_TOKEN", use_context=True)
-    dp = updater.dispatcher
+    from telegram.ext import ApplicationBuilder
+
+app = ApplicationBuilder().token("BOT_TOKEN").build()
+app.add_handler(...)
+app.run_polling()
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("bakiye", bakiye))

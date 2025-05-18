@@ -567,25 +567,25 @@ async def top_cmd(message: Message):
     await message.answer(msg, parse_mode="HTML")
     
 
-
+=== ✨ BOT KOMUTLARI ✨ ===
 # 🟢 /start – Botu başlat
-# 💰 /bakiye – Bakiye ve döviz
-# 🎁 /bonus – Günlük bonus
-# 🏦 /bankaparaekle – Bankaya yatır
-# 💳 /bankaparaçek – Bankadan çek
-# 🏦 /banka – Döviz kurları
-# 📈 /dövizal – Döviz al
-# 📉 /dövizsat – Döviz sat
-# 🎰 /slot – Slot çevir
-# 🔥 /risk – Risk al kazan
-# ⚽ /bahis – Takım seç bahis
-# 🤝 /paragönder – Para gönder
-# 🤑 /parabasma – Admin para basar
-# 🆔 /id – Kullanıcı ID göster
-# 🏆 /top – En zenginler
-# 📜 /komutlar – Tüm komutlar
-# 🛡 /admin – Admin ekle
-# 🔍 /rep – Kullanıcı bilgisi"""
+💰 /bakiye – Bakiye ve döviz
+🎁 /bonus – Günlük bonus
+🏦 /bankaparaekle – Bankaya yatır
+💳 /bankaparaçek – Bankadan çek
+🏦 /banka – Döviz kurları
+📈 /dövizal – Döviz al
+📉 /dövizsat – Döviz sat
+🎰 /slot – Slot çevir
+🔥 /risk – Risk al kazan
+⚽ /bahis – Takım seç bahis
+🤝 /paragönder – Para gönder
+🤑 /parabasma – Admin para basar
+🆔 /id – Kullanıcı ID göster
+🏆 /top – En zenginler
+📜 /komutlar – Tüm komutlar
+🛡 /admin – Admin ekle
+🔍 /rep – Kullanıcı bilgisi"""
     
     await message.answer(komutlar)
     

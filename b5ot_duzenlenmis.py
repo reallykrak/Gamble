@@ -590,6 +590,7 @@ async def komutlari_goster(message: Message):
 🛡 /admin – Admin ekle
 🔍 /rep – Kullanıcı bilgisi"""
     
+    await message.answer(komutlar)
     
 @router.message(Command("admin"))
 async def admin_ekle(message: Message):

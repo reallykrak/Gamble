@@ -554,7 +554,10 @@ async def top_cmd(message: Message):
         toplam = user_data.get("bakiye", 0) + user_data.get("banka", 0)
         try:
             user = await message.bot.get_chat(uid)
-            isim = f"@{user.username}" if user.username else user.first_name
+            if user.username:
+                isim = f"@{user.username}"
+            else:
+                isim = f"{user.first_name} {user.last_name or ''}"
         except:
             isim = f"ID:{uid}"
 

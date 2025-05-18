@@ -573,7 +573,7 @@ async def komutlari_goster(message: Message):
 📜 /komutlar – Tüm komutlar
 🛡 /admin – Admin ekle
 🔍 /rep – Kullanıcı bilgisi"""
-
+    
     await message.answer(komutlar)
 await message.answer(komutlar)
 

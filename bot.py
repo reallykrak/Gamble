@@ -566,7 +566,7 @@ async def top_cmd(message: Message):
 
     await message.answer(msg, parse_mode="HTML")
     
-@@router.message(Command("komutlar"))
+@router.message(Command("komutlar"))
 async def komutlari_goster(message: Message):
     komutlar = """=== ✨ BOT KOMUTLARI ✨ ===
 🟢 /start - Botu başlat  

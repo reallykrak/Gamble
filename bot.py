@@ -112,9 +112,10 @@ def banka(update: Update, context: CallbackContext):
         f"💎 Elmas: {rates.get('elmas', '?')}₺"
     )
     update.message.reply_text(metin, parse_mode="HTML")
-    
     def dovizal(update: Update, context: CallbackContext):
     try:
+        # kodlar burada girintili şekilde devam etmeli
+        pass
         tur = context.args[0].lower()
         miktar = int(context.args[1])
         data = load_data()

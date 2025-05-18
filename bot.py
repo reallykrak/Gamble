@@ -177,17 +177,14 @@ async def doviz_sat(message: Message):
             u["doviz"][tur] -= miktar
             u["banka"] += gelir
             set_user(message.from_user.id, u)
-            await message.answer(f"💱 {miktar} {tur.upper()} satıldı, 💵 {gelir}₺ kazandın!")
-        else:
-            await message.answer("❌ Elinde bu kadar döviz yok.")
-    except:
-        await message.answer("🔢 Kullanım: /dövizsat <tür> <miktar>")
-        @router.message(Command("slot"))
+            except:
+    await message.answer("🔢 Kullanım: /dövizsat <tür> <miktar>")
+
+@router.message(Command("slot"))
 async def slot_cmd(message: Message):
     try:
         miktar = int(message.text.split()[1])
-        u = get_user(message.from_user.id)
-        if u["bakiye"] < miktar:
+        ...
             await message.answer("💸 Yetersiz bakiye!")
             return
         u["bakiye"] -= miktar

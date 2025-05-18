@@ -567,7 +567,7 @@ async def top_cmd(message: Message):
     await message.answer(msg, parse_mode="HTML")
     
 
-=== ✨ BOT KOMUTLARI ✨ ===
+# === ✨ BOT KOMUTLARI ✨ ===
 # 🟢 /start – Botu başlat
 💰 /bakiye – Bakiye ve döviz
 🎁 /bonus – Günlük bonus

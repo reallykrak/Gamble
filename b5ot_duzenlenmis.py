@@ -10,7 +10,7 @@ from aiogram.filters import Command
 from aiogram.client.default import DefaultBotProperties
 
 # Bot Token'ı - BotFather'dan alınmıştır
-TOKEN = "7150888063:AAGZizuDzTxE4RFlBsFJLWTLkwDo061FKyU"
+TOKEN = "7150888063:AAE6C0e3y_wSX-7LaEz57q4F4xQaqzlzIaY"
 
 # Sabit Admin ID'si - Buraya KENDİ Telegram ID'nizi yazın!
 SABIT_ADMIN_ID = 8121637254 # Örnek ID, KENDİ ID'nizi yazın!

@@ -183,6 +183,16 @@ async def doviz_sat(message: Message):
             await message.answer("❌ Elinde bu kadar döviz yok.")
     except:
         await message.answer("🔢 Kullanım: /dövizsat <tür> <miktar>")
+
+@router.message(Command("risk"))
+async def risk_cmd(message: Message):
+    try:
+        miktar = int(message.text.split()[1])
+        u = get_user(message.from_user.id)
+        if u["bakiye"] < miktar:
+            await message.answer("💸 Yetersiz bakiye!")
+            return
+        if random.random() < 0.5: # %50 kazanma şansı
             u["bakiye"] += miktar
             await message.answer(f"🔥 Şanslısın! {miktar}₺ kazandın!")
         else:
@@ -191,6 +201,7 @@ async def doviz_sat(message: Message):
         set_user(message.from_user.id, u)
     except:
         await message.answer("🔢 Kullanım: /risk <miktar>")
+
 
 @router.message(Command("bahis"))
 async def bahis_cmd(message: Message):
@@ -327,4 +338,3 @@ async def main():
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
-    

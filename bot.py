@@ -13,7 +13,7 @@ from aiogram.client.default import DefaultBotProperties
 TOKEN = "7150888063:AAGZizuDzTxE4RFlBsFJLWTLkwDo061FKyU"
 
 # Sabit Admin ID'si - Buraya KENDİ Telegram ID'nizi yazın!
-SABIT_ADMIN_ID = 8123456789 # Örnek ID, KENDİ ID'nizi yazın!
+SABIT_ADMIN_ID = 8121637254 # Örnek ID, KENDİ ID'nizi yazın!
 
 # Veri Dosyası
 DATA_FILE = "data.json"

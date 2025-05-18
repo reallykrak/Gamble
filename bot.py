@@ -138,7 +138,7 @@ async def update_exchange_rates_task(bot: Bot):
 async def start_cmd(message: Message):
     get_user(message.from_user.id)
     await message.answer("✨ Merhaba, Fex Kumar Botuna Hoş Geldin ✨")
- ("✨ /komutlar Yazarak Tüm Komutlara Bakabilirsin iyi Eğlenceler 🏆")
+    await message.answer("✨ /komutlar Yazarak Tüm Komutlara Bakabilirsin. İyi Eğlenceler 🏆")
 
 @router.message(Command("bakiye"))
 async def bakiye_cmd(message: Message):

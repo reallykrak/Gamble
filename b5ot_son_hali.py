@@ -658,23 +658,23 @@ if __name__ == "__main__":
 @router.message(Command("komutlar"))
 async def komutlari_goster(message: Message):
     komutlar = """===✨  BOT KOMUTLARI ✨ ===
-# === Komut Listesi Açıklama ===
-# 🟢 /start - Botu başlat
-# 💰 /bakiye - Bakiye ve döviz
-# 🎁 /bonus - Günlük bonus
-# 🏦 /bankaparaekle - Bankaya yatır
-# 💳 /bankaparaçek - Bankadan çek
-# 🏦 /banka - Döviz kurları
-# 📈 /dövizal - Döviz al
-# 📉 /dövizsat - Döviz sat
-# 🎰 /slot - Slot çevir
-# 🔥 /risk - Risk al kazan
-# ⚽ /bahis - Takım seç bahis
-# 🤝 /paragönder - Para gönder
-# 🤑 /parabasma - Admin para basar
-# 🆔 /id - Kullanıcı ID göster
-# 🏆 /top - En zenginler
-# 📜 /komutlar - Tüm komutlar
-# 🛡 /admin - Admin ekle
-# 🔍 /rep - Kullanıcı bilgisi
+🟢 /start - Botu başlat
+💰 /bakiye - Bakiye ve döviz
+🎁 /bonus - Günlük bonus
+🏦 /bankaparaekle - Bankaya yatır
+💳 /bankaparaçek - Bankadan çek
+🏦 /banka - Döviz kurları
+📈 /dövizal - Döviz al
+📉 /dövizsat - Döviz sat
+🎰 /slot - Slot çevir
+🔥 /risk - Risk al kazan
+⚽ /bahis - Takım seç bahis
+🤝 /paragönder - Para gönder
+🤑 /parabasma - Admin para basar
+🆔 /id - Kullanıcı ID göster
+🏆 /top - En zenginler
+📜 /komutlar - Tüm komutlar
+🛡 /admin - Admin ekle
+🔍 /rep - Kullanıcı bilgisi
+"""
     await message.answer(komutlar)

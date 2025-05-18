@@ -555,43 +555,26 @@ async def top_cmd(message: Message):
 @router.message(Command("komutlar"))
 async def komutlar_cmd(message: Message):
     komutlar = (
-        "🟢 /start – Botu başlat
-"
-        "💰 /bakiye – Bakiye ve döviz
-"
-        "🎁 /bonus – Günlük bonus
-"
-        "🏦 /bankaparaekle – Bankaya yatır
-"
-        "💳 /bankaparaçek – Bankadan çek
-"
-        "🏦 /banka – Döviz kurları
-"
-        "📈 /dövizal – Döviz al
-"
-        "📉 /dövizsat – Döviz sat
-"
-        "🎰 /slot – Slot çevir
-"
-        "🔥 /risk – Risk al kazan
-"
-        "⚽ /bahis – Takım seç bahis
-"
-        "🤝 /paragönder – Para gönder
-"
-        "🤑 /parabasma – Admin para basar
-"
-        "🆔 /id – Kullanıcı ID göster
-"
-        "🏆 /top – En zenginler
-"
-        "📜 /komutlar – Tüm komutlar
-"
-        "🛡 /admin – Admin ekle
-"
-        "🔍 /rep – Kullanıcı bilgisi"
-    )
-    await message.answer(komutlar)
+    "🟢 /start – Botu başlat\n"
+    "💰 /bakiye – Bakiye ve döviz\n"
+    "🎁 /bonus – Günlük bonus\n"
+    "🏦 /bankaparaekle – Bankaya yatır\n"
+    "💳 /bankaparaçek – Bankadan çek\n"
+    "🏦 /banka – Döviz kurları\n"
+    "📈 /dövizal – Döviz al\n"
+    "📉 /dövizsat – Döviz sat\n"
+    "🎰 /slot – Slot çevir\n"
+    "🔥 /risk – Risk al kazan\n"
+    "⚽ /bahis – Takım seç bahis\n"
+    "🤝 /paragönder – Para gönder\n"
+    "🤑 /parabasma – Admin para basar\n"
+    "🆔 /id – Kullanıcı ID göster\n"
+    "🏆 /top – En zenginler\n"
+    "📜 /komutlar – Tüm komutlar\n"
+    "🛡 /admin – Admin ekle\n"
+    "🔍 /rep – Kullanıcı bilgisi"
+)
+await message.answer(komutlar)
 
 @router.message(Command("admin"))
 async def admin_ekle(message: Message):

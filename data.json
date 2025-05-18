@@ -2,9 +2,9 @@
   "users": {},
   "admins": [],
   "exchange_rates": {
-    "dolar": 983,
-    "euro": 900,
-    "sterlin": 500,
-    "elmas": 300
+    "dolar": 1000,
+    "euro": 1000,
+    "sterlin": 1000,
+    "elmas": 1000
   }
 }

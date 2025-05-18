@@ -657,7 +657,7 @@ if __name__ == "__main__":
 
 @router.message(Command("komutlar"))
 async def komutlari_goster(message: Message):
-    komutlar = """===✨  BOT KOMUTLARI ✨ ===
+    komutlar = """ # ===✨  BOT KOMUTLARI ✨ ===
 # 🟢 /start - Botu başlat
 # 💰 /bakiye - Bakiye ve döviz
 # 🎁 /bonus - Günlük bonus
